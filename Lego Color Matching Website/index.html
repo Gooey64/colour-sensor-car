@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KNN Colour Maze Robot</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="site-header">
+        <a class="brand" href="#top" aria-label="KNN Maze Robot home">
+            <span class="brand-mark"></span>
+            <span>KNN Maze Robot</span>
+        </a>
+        <div class="header-right">
+            <nav aria-label="Main navigation">
+                <a href="#idea">Idea</a>
+                <a href="#knn">KNN</a>
+                <a href="#recorder">Recorder</a>
+                <a href="#plan">Build Plan</a>
+            </nav>
+            <a class="partner-lockup" href="#plan" aria-label="In collaboration with LEGO Education">
+                <span>In collaboration with</span>
+                <img src="assets/lego-education.png" alt="LEGO Education">
+            </a>
+        </div>
+    </header>
+
+    <main id="top">
+        <section class="hero">
+            <div class="hero-copy">
+                <p class="eyebrow">07/07 project concept</p>
+                <h1>Teaching a LEGO robot to read colour-coded maze decisions.</h1>
+                <p class="lede">
+                    A LEGO robot uses a colour sensor at each crossing. Fruits or animals act as memorable
+                    proxy labels for the colour code. A KNN model compares each new sensor reading with
+                    recorded examples and chooses the motion the robot should perform.
+                </p>
+                <div class="hero-partner" aria-label="LEGO Education collaboration">
+                    <img src="assets/lego-education.png" alt="LEGO Education">
+                    <span>Built as a LEGO Education collaboration for colour-sensor maze learning.</span>
+                </div>
+                <div class="hero-actions" aria-label="Primary sections">
+                    <a class="button primary" href="#recorder">Record colours</a>
+                    <a class="button secondary" href="#knn">Understand KNN</a>
+                </div>
+            </div>
+
+            <div class="hero-visual" aria-label="Maze decision diagram">
+                <div class="ascii-stage" aria-hidden="true">
+                    <div id="ascii-text-hero" class="ascii-text-container" data-text="COLOUR_ACTION"></div>
+                    <pre class="ascii-fallback">READ COLOUR
+KNN PREDICTS
+ROBOT MOVES</pre>
+                    <div class="ascii-message">
+                        <span>Read colour</span>
+                        <span>KNN predicts</span>
+                        <span>Robot moves</span>
+                    </div>
+                </div>
+                <div class="maze-frame">
+                    <svg class="maze-map" viewBox="0 0 520 360" role="img" aria-labelledby="maze-title maze-desc">
+                        <title id="maze-title">Robot navigating colour-coded maze crossings</title>
+                        <desc id="maze-desc">A maze path with colour markers and robot direction decisions.</desc>
+                        <rect x="22" y="22" width="476" height="316" rx="4"></rect>
+                        <path d="M70 294 H184 V228 H314 V164 H448" class="path"></path>
+                        <path d="M184 228 V94 H314 V164" class="branch"></path>
+                        <path d="M314 164 V272 H430" class="branch"></path>
+                        <g class="marker marker-red" transform="translate(184 228)">
+                            <circle r="18"></circle>
+                            <text y="5">A</text>
+                        </g>
+                        <g class="marker marker-green" transform="translate(314 164)">
+                            <circle r="18"></circle>
+                            <text y="5">B</text>
+                        </g>
+                        <g class="marker marker-blue" transform="translate(314 272)">
+                            <circle r="18"></circle>
+                            <text y="5">C</text>
+                        </g>
+                        <g class="robot" transform="translate(86 294)">
+                            <rect x="-20" y="-14" width="40" height="28" rx="4"></rect>
+                            <circle cx="-11" cy="17" r="5"></circle>
+                            <circle cx="11" cy="17" r="5"></circle>
+                            <path d="M20 0 H36"></path>
+                        </g>
+                        <g class="map-chip" transform="translate(116 264)">
+                            <rect width="146" height="30" rx="5"></rect>
+                            <text x="12" y="20">apple -> turn left</text>
+                        </g>
+                        <g class="map-chip" transform="translate(274 94)">
+                            <rect width="136" height="30" rx="5"></rect>
+                            <text x="12" y="20">frog -> straight</text>
+                        </g>
+                        <g class="map-chip" transform="translate(338 232)">
+                            <rect width="156" height="30" rx="5"></rect>
+                            <text x="12" y="20">whale -> turn right</text>
+                        </g>
+                    </svg>
+                </div>
+                <div class="hardware-strip">
+                    <figure>
+                        <img src="assets/color-sensor.png" alt="LEGO Education colour sensor">
+                        <figcaption>Colour sensor</figcaption>
+                    </figure>
+                    <figure>
+                        <img src="assets/double-motor.png" alt="LEGO Education double motor">
+                        <figcaption>Double motor drive</figcaption>
+                    </figure>
+                    <figure class="lego-platform">
+                        <img src="assets/lego-education.png" alt="LEGO Education">
+                        <figcaption>LEGO Education platform</figcaption>
+                    </figure>
+                </div>
+            </div>
+        </section>
+
+        <section class="content-band" id="idea">
+            <div class="section-heading">
+                <p class="eyebrow">System idea</p>
+                <h2>How the maze becomes learnable</h2>
+            </div>
+            <div class="concept-grid">
+                <article class="concept-card">
+                    <span class="step">01</span>
+                    <h3>Place a coded marker</h3>
+                    <p>
+                        Each crossing has a colour patch. The patch can be named by a fruit or animal so the
+                        rule is easier to remember: apple, frog, whale, lemon, panda.
+                    </p>
+                </article>
+                <article class="concept-card">
+                    <span class="step">02</span>
+                    <h3>Record sensor examples</h3>
+                    <p>
+                        The user scans each marker several times and labels the expected movement:
+                        left, right, straight, reverse, or stop.
+                    </p>
+                </article>
+                <article class="concept-card">
+                    <span class="step">03</span>
+                    <h3>Classify at the crossing</h3>
+                    <p>
+                        When the robot reaches a junction, the colour sensor reading is compared to the
+                        closest recorded samples.
+                    </p>
+                </article>
+                <article class="concept-card">
+                    <span class="step">04</span>
+                    <h3>Perform the motion</h3>
+                    <p>
+                        The selected class becomes a motor command. The robot turns, drives forward, or
+                        reverses based on what the nearest examples say.
+                    </p>
+                </article>
+            </div>
+        </section>
+
+        <section class="split-band" id="knn">
+            <div class="section-heading compact">
+                <p class="eyebrow">Background</p>
+                <h2>KNN in plain terms</h2>
+                <p>
+                    K-nearest neighbours is a simple supervised learning method. It does not build a complex
+                    equation during training. Instead, it stores labelled examples and makes decisions by
+                    looking at the closest examples to a new input.
+                </p>
+            </div>
+            <div class="knn-panel">
+                <div class="knn-plot" aria-label="KNN colour space illustration">
+                    <span class="point apple"></span>
+                    <span class="point apple small"></span>
+                    <span class="point frog"></span>
+                    <span class="point frog small"></span>
+                    <span class="point whale"></span>
+                    <span class="point query"></span>
+                    <span class="radius"></span>
+                    <p class="plot-axis x-axis">red value</p>
+                    <p class="plot-axis y-axis">green value</p>
+                </div>
+                <div class="knn-copy">
+                    <h3>For this robot, each sample can be a point.</h3>
+                    <p>
+                        A colour reading can be represented as numbers such as red, green, and blue intensity.
+                        KNN measures the distance between the new reading and previous examples. If most of
+                        the nearest examples say "turn right", the robot turns right.
+                    </p>
+                    <dl class="definition-list">
+                        <div>
+                            <dt>K</dt>
+                            <dd>The number of neighbours checked before deciding.</dd>
+                        </div>
+                        <div>
+                            <dt>Distance</dt>
+                            <dd>How different two colour readings are.</dd>
+                        </div>
+                        <div>
+                            <dt>Label</dt>
+                            <dd>The motion attached to a colour sample.</dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+        </section>
+
+        <section class="recorder-band" id="recorder">
+            <div class="section-heading">
+                <p class="eyebrow">Prototype UI</p>
+                <h2>Record maze colour codes</h2>
+                <p>
+                    This panel models the user-facing part of the project. In the finished robot, the colour
+                    picker would be replaced by real readings from the LEGO colour sensor.
+                </p>
+            </div>
+
+            <div class="recorder-layout">
+                <form class="recorder-panel" id="sample-form">
+                    <div class="segmented" aria-label="Proxy label type">
+                        <input type="radio" name="proxyType" id="fruit-proxy" value="fruit" checked>
+                        <label for="fruit-proxy">Fruits</label>
+                        <input type="radio" name="proxyType" id="animal-proxy" value="animal">
+                        <label for="animal-proxy">Animals</label>
+                    </div>
+
+                    <label class="field">
+                        <span>Proxy label</span>
+                        <select id="proxy-label" name="proxyLabel"></select>
+                    </label>
+
+                    <label class="field">
+                        <span>Recorded colour</span>
+                        <input id="sample-colour" name="sampleColour" type="color" value="#5f5f5f">
+                    </label>
+
+                    <label class="field">
+                        <span>Robot action</span>
+                        <select id="sample-action" name="sampleAction">
+                            <option value="turn left">Turn left</option>
+                            <option value="turn right">Turn right</option>
+                            <option value="go straight">Go straight</option>
+                            <option value="reverse">Reverse</option>
+                            <option value="stop">Stop</option>
+                        </select>
+                    </label>
+
+                    <button class="button primary full" type="submit">Save sample</button>
+                </form>
+
+                <div class="prediction-panel">
+                    <div class="prediction-head">
+                        <h3>Test a crossing</h3>
+                        <p>Choose a new sensor colour and let KNN predict the robot action.</p>
+                    </div>
+                    <label class="field">
+                        <span>New reading</span>
+                        <input id="test-colour" type="color" value="#767676">
+                    </label>
+                    <label class="field">
+                        <span>K neighbours</span>
+                        <input id="k-value" type="range" min="1" max="5" value="3">
+                    </label>
+                    <div class="prediction-result" id="prediction-result">
+                        Add or keep samples to get a prediction.
+                    </div>
+                </div>
+            </div>
+
+            <div class="samples-header">
+                <h3>Recorded training samples</h3>
+                <button class="button secondary" type="button" id="reset-samples">Reset examples</button>
+            </div>
+            <div class="sample-list" id="sample-list" aria-live="polite"></div>
+        </section>
+
+        <section class="content-band" id="plan">
+            <div class="section-heading">
+                <p class="eyebrow">Application</p>
+                <h2>How this becomes the real robot</h2>
+                <p>
+                    The collaboration with LEGO Education gives the project a concrete hardware base:
+                    colour-sensor readings become training data, and motor commands become visible maze
+                    decisions.
+                </p>
+            </div>
+            <div class="plan-grid">
+                <div class="plan-line">
+                    <span>1</span>
+                    <p>Collect several readings for each colour marker under the same room lighting.</p>
+                </div>
+                <div class="plan-line">
+                    <span>2</span>
+                    <p>Store each reading with its fruit or animal proxy and expected robot action.</p>
+                </div>
+                <div class="plan-line">
+                    <span>3</span>
+                    <p>At each maze crossing, classify the live reading using KNN.</p>
+                </div>
+                <div class="plan-line">
+                    <span>4</span>
+                    <p>Translate the predicted action into motor commands: forward, left, right, reverse, or stop.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="footer-lockup">
+            <img src="assets/lego-education.png" alt="LEGO Education">
+            <p>KNN colour maze concept for a LEGO Education robot with a colour sensor.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="ascii-text.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
