@@ -169,19 +169,30 @@ select:focus-visible,
   padding: 3px 7px;
 }
 
-.hub-card {
+.device-card {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 8px 10px;
   margin-bottom: 8px;
   background: var(--panel);
 }
-.hub-card .hub-name {
+.device-card .device-name {
   font-weight: 600;
   font-size: 12.5px;
   display: flex;
   align-items: center;
   gap: 6px;
+}
+.device-name-input {
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-weight: 600;
+  font-size: 12.5px;
+  font-family: var(--sans);
+  padding: 2px 0;
+  min-width: 0;
+  flex: 1;
 }
 .dot {
   width: 7px;

@@ -3,45 +3,41 @@ import Editor from '@monaco-editor/react';
 import TabsBar from './TabsBar';
 import Console from './Console';
 
-const STORAGE_KEY = 'lego-sensor-ide-tabs-v1';
+const STORAGE_KEY = 'lego-sensor-ide-tabs-v2';
 
-const STARTER_CODE = `// Available in every script:
-//   sensorIds, motorIds        arrays of connected device ids, e.g. "Hub1:A"
-//   Sensor(id).read()          -> { rgb: [r, g, b] }
-//   Sensor(id).classify()      -> { className, distance } | null (no classes yet)
-//   Motor(id).run(speed, power)  speed: -100..100, power: 0..100 (optional)
-//   Motor(id).stop()
-//   sleep(ms)                  pause without blocking the page
-//   print(...)                 write to the console below
-//
-// Tip: an "await sleep(...)" inside a loop keeps things responsive.
-// A loop that never awaits will auto-break after a couple of seconds
-// so it can't lock up the page — but a "Stop" click always wins.
+const STARTER_CODE = `# Available in every script:
+#   sensor_ids, motor_ids            lists of connected device ids, e.g. "Front Sensor:A"
+#   Sensor(id).read()                -> {"rgb": [r, g, b]}
+#   Sensor(id).classify()            -> {"class_name", "distance"} or None (no classes yet)
+#   Motor(id).run(speed, power=100)  speed: -100..100, power: 0..100 (optional)
+#   Motor(id).stop()
+#   wait(seconds)                    pause without blocking the page
+#   print(...)                       write to the console below
+#
+# Tip: an "await wait(...)" inside a loop keeps things responsive.
+# "Stop" always ends the script immediately; there's also a 30-second
+# automatic safety limit in case a script never finishes.
 
-print('sensors:', sensorIds);
-print('motors:', motorIds);
+print("sensors:", sensor_ids)
+print("motors:", motor_ids)
 
-if (sensorIds.length && motorIds.length) {
-  const sensor = Sensor(sensorIds[0]);
-  const motor = Motor(motorIds[0]);
+if sensor_ids and motor_ids:
+    sensor = Sensor(sensor_ids[0])
+    motor = Motor(motor_ids[0])
 
-  while (true) {
-    const result = await sensor.classify();
-    if (result) {
-      print('seeing:', result.className, result.distance.toFixed(1));
-    }
+    while True:
+        result = await sensor.classify()
+        if result:
+            print("seeing:", result["class_name"], round(result["distance"], 1))
 
-    if (result && result.className === 'stop-line') {
-      await motor.stop();
-    } else {
-      await motor.run(35);
-    }
+        if result and result["class_name"] == "stop-line":
+            await motor.stop()
+        else:
+            await motor.run(35)
 
-    await sleep(100);
-  }
-} else {
-  print('Connect a hub with a color sensor and a motor, then run again.');
-}
+        await wait(0.1)
+else:
+    print("Connect a device with a color sensor and a motor, then run again.")
 `;
 
 function loadTabs() {
@@ -51,7 +47,7 @@ function loadTabs() {
   } catch (e) {
     /* ignore */
   }
-  return [{ id: 't1', name: 'main.js', code: STARTER_CODE }];
+  return [{ id: 't1', name: 'main.py', code: STARTER_CODE }];
 }
 
 export default function CodeEditor({ runController }) {
@@ -98,8 +94,8 @@ export default function CodeEditor({ runController }) {
 
   function addTab() {
     const id = `t${Date.now()}`;
-    const name = `script${tabs.length + 1}.js`;
-    setTabs((prev) => [...prev, { id, name, code: '// New script\n' }]);
+    const name = `script${tabs.length + 1}.py`;
+    setTabs((prev) => [...prev, { id, name, code: '# New script\n' }]);
     setActiveTabId(id);
   }
 
@@ -152,7 +148,7 @@ export default function CodeEditor({ runController }) {
         <Editor
           height="100%"
           theme="vs-dark"
-          language="javascript"
+          language="python"
           value={activeTab.code}
           onChange={(v) => updateCode(v ?? '')}
           options={{
@@ -160,7 +156,7 @@ export default function CodeEditor({ runController }) {
             fontFamily: "'JetBrains Mono', ui-monospace, Menlo, monospace",
             minimap: { enabled: false },
             scrollBeyondLastLine: false,
-            tabSize: 2,
+            tabSize: 4,
           }}
         />
       </div>

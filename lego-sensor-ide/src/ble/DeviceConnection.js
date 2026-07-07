@@ -17,7 +17,7 @@ const FEED_INTERVAL_MS = 100;
 const INFO_TIMEOUT_MS = 5000;
 const MOTOR_BRAKE_STATE = 1; // 0 = coast, 1 = brake, 2 = hold
 
-let nextHubHandle = 1;
+let nextDeviceHandle = 1;
 
 function clampInt8(v) {
   v = Math.round(v);
@@ -26,12 +26,15 @@ function clampInt8(v) {
   return v;
 }
 
-export class HubConnection extends EventTarget {
+// A single physical LEGO Education CS & AI kit peripheral — a Motor device
+// (single or double) or a Color Sensor device — connected over its own BLE
+// GATT connection. See techElement.js for the wire protocol.
+export class DeviceConnection extends EventTarget {
   constructor(bleDevice) {
     super();
-    this.handle = nextHubHandle++;
+    this.handle = nextDeviceHandle++;
     this.bleDevice = bleDevice;
-    this.name = bleDevice.name || `Hub ${this.handle}`;
+    this.name = bleDevice.name || `Device ${this.handle}`;
     this.gatt = null;
     this.writeCharacteristic = null;
     this.notifyCharacteristic = null;
@@ -88,7 +91,7 @@ export class HubConnection extends EventTarget {
           return;
         }
         if (Date.now() - start > timeoutMs) {
-          reject(new Error('Timed out waiting for hub info response.'));
+          reject(new Error('Timed out waiting for device info response.'));
           return;
         }
         setTimeout(check, 100);
@@ -114,7 +117,7 @@ export class HubConnection extends EventTarget {
         new CustomEvent('portattached', { detail: { portId, deviceType: null, kind: 'color-sensor' } })
       );
     } else {
-      console.warn(`Unrecognized hub GroupID ${groupId}; no ports registered.`);
+      console.warn(`Unrecognized device GroupID ${groupId}; no ports registered.`);
     }
   }
 
@@ -200,12 +203,12 @@ export class HubConnection extends EventTarget {
   }
 }
 
-export async function requestAndConnectHub() {
-  const device = await navigator.bluetooth.requestDevice({
+export async function requestAndConnectDevice() {
+  const bleDevice = await navigator.bluetooth.requestDevice({
     filters: [{ services: [SERVICE_UUID] }],
     optionalServices: [SERVICE_UUID],
   });
-  const hub = new HubConnection(device);
-  await hub.connect();
-  return hub;
+  const device = new DeviceConnection(bleDevice);
+  await device.connect();
+  return device;
 }

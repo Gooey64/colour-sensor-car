@@ -1,11 +1,9 @@
-import { protectLoops } from './loopGuard';
-
-const HARD_TIMEOUT_MS = 30000; // absolute backstop even if a script never awaits
+const HARD_TIMEOUT_MS = 30000; // absolute backstop even if a script never awaits/finishes
 
 export class RunController extends EventTarget {
-  constructor(hubManager, classifier) {
+  constructor(deviceManager, classifier) {
     super();
-    this.hubManager = hubManager;
+    this.deviceManager = deviceManager;
     this.classifier = classifier;
     this.worker = null;
     this.hardTimeoutHandle = null;
@@ -18,16 +16,6 @@ export class RunController extends EventTarget {
 
   async run(code) {
     this.stop(); // ensure any previous run is torn down first
-
-    let protectedCode;
-    try {
-      protectedCode = protectLoops(code, 2000);
-    } catch (err) {
-      this.dispatchEvent(
-        new CustomEvent('error', { detail: `Syntax error: ${err.message || err}` })
-      );
-      return;
-    }
 
     this.worker = new Worker(new URL('./worker.js', import.meta.url), { type: 'module' });
     this.running = true;
@@ -44,7 +32,7 @@ export class RunController extends EventTarget {
       this.stop();
     }, HARD_TIMEOUT_MS);
 
-    this.worker.postMessage({ type: 'run', code: protectedCode });
+    this.worker.postMessage({ type: 'run', code });
   }
 
   stop() {
@@ -95,44 +83,44 @@ export class RunController extends EventTarget {
     }
   }
 
-  _findDevice(id, kindFilter) {
-    const device = this.hubManager
-      .listDevices()
-      .find((d) => d.id === id && (!kindFilter || d.kind === kindFilter));
-    if (!device) throw new Error(`Device "${id}" is not connected.`);
-    return device;
+  _findEndpoint(id, kindFilter) {
+    const endpoint = this.deviceManager
+      .listEndpoints()
+      .find((e) => e.id === id && (!kindFilter || e.kind === kindFilter));
+    if (!endpoint) throw new Error(`Device "${id}" is not connected.`);
+    return endpoint;
   }
 
   async _dispatchRpc(method, args) {
     switch (method) {
       case 'listSensorIds':
-        return this.hubManager.findSensors().map((d) => d.id);
+        return this.deviceManager.findSensors().map((e) => e.id);
       case 'listMotorIds':
-        return this.hubManager.findMotors().map((d) => d.id);
+        return this.deviceManager.findMotors().map((e) => e.id);
       case 'sensorRead': {
         const [id] = args;
-        const device = this._findDevice(id, 'color-sensor');
-        const latest = device.hub.ports.get(device.portId)?.latest;
+        const endpoint = this._findEndpoint(id, 'color-sensor');
+        const latest = endpoint.device.ports.get(endpoint.portId)?.latest;
         if (!latest) return null;
         return { rgb: latest.rgb255 };
       }
       case 'sensorClassify': {
         const [id] = args;
-        const device = this._findDevice(id, 'color-sensor');
-        const latest = device.hub.ports.get(device.portId)?.latest;
+        const endpoint = this._findEndpoint(id, 'color-sensor');
+        const latest = endpoint.device.ports.get(endpoint.portId)?.latest;
         if (!latest) return null;
         return this.classifier.classify(latest.rgb255);
       }
       case 'motorRun': {
         const [id, speed, power] = args;
-        const device = this._findDevice(id, 'motor');
-        await device.hub.runMotor(device.portId, speed, power ?? 100);
+        const endpoint = this._findEndpoint(id, 'motor');
+        await endpoint.device.runMotor(endpoint.portId, speed, power ?? 100);
         return true;
       }
       case 'motorStop': {
         const [id] = args;
-        const device = this._findDevice(id, 'motor');
-        await device.hub.stopMotor(device.portId);
+        const endpoint = this._findEndpoint(id, 'motor');
+        await endpoint.device.stopMotor(endpoint.portId);
         return true;
       }
       default:

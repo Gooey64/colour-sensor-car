@@ -1,19 +1,22 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { HubManager } from './ble/HubManager';
+import { DeviceManager } from './ble/DeviceManager';
 import { ColorClassifier } from './classifier/colorClassifier';
 import { RunController } from './ide/runtime/runController';
-import HubPanel from './components/HubPanel';
+import DevicePanel from './components/DevicePanel';
 import DataPanel from './components/DataPanel';
 import FunctionLibrary from './components/FunctionLibrary';
 import CodeEditor from './ide/CodeEditor';
 
 export default function App() {
-  const hubManager = useMemo(() => new HubManager(), []);
+  const deviceManager = useMemo(() => new DeviceManager(), []);
   const classifier = useMemo(() => new ColorClassifier(), []);
-  const runController = useMemo(() => new RunController(hubManager, classifier), [hubManager, classifier]);
+  const runController = useMemo(
+    () => new RunController(deviceManager, classifier),
+    [deviceManager, classifier]
+  );
 
-  const [hubs, setHubs] = useState([]);
   const [devices, setDevices] = useState([]);
+  const [endpoints, setEndpoints] = useState([]);
   const [connecting, setConnecting] = useState(false);
   const [selectedSensorId, setSelectedSensorId] = useState(null);
   const [view, setView] = useState('code'); // 'code' | 'data' | 'library'
@@ -31,8 +34,8 @@ export default function App() {
 
   useEffect(() => {
     function refresh() {
-      setHubs([...hubManager.hubs]);
-      setDevices(hubManager.listDevices());
+      setDevices([...deviceManager.devices]);
+      setEndpoints(deviceManager.listEndpoints());
     }
     function onSensorValue() {
       // Sensor values stream frequently; a lightweight tick keeps swatches
@@ -40,21 +43,21 @@ export default function App() {
       rerenderTick.current += 1;
       refresh();
     }
-    hubManager.addEventListener('changed', refresh);
-    hubManager.addEventListener('sensorvalue', onSensorValue);
+    deviceManager.addEventListener('changed', refresh);
+    deviceManager.addEventListener('sensorvalue', onSensorValue);
     refresh();
     return () => {
-      hubManager.removeEventListener('changed', refresh);
-      hubManager.removeEventListener('sensorvalue', onSensorValue);
+      deviceManager.removeEventListener('changed', refresh);
+      deviceManager.removeEventListener('sensorvalue', onSensorValue);
     };
-  }, [hubManager]);
+  }, [deviceManager]);
 
-  const sensors = devices.filter((d) => d.kind === 'color-sensor');
+  const sensors = endpoints.filter((e) => e.kind === 'color-sensor');
 
-  async function addHub() {
+  async function addDevice() {
     setConnecting(true);
     try {
-      await hubManager.addHub();
+      await deviceManager.addDevice();
     } catch (e) {
       if (e.name !== 'NotFoundError') {
         // NotFoundError = user cancelled the browser's device picker.
@@ -66,8 +69,12 @@ export default function App() {
     }
   }
 
-  function removeHub(hub) {
-    hubManager.removeHub(hub);
+  function removeDevice(device) {
+    deviceManager.removeDevice(device);
+  }
+
+  function renameDevice(device, name) {
+    deviceManager.renameDevice(device, name);
   }
 
   return (
@@ -90,7 +97,13 @@ export default function App() {
       </header>
 
       <aside className="sidebar">
-        <HubPanel hubs={hubs} onAddHub={addHub} onRemoveHub={removeHub} connecting={connecting} />
+        <DevicePanel
+          devices={devices}
+          onAddDevice={addDevice}
+          onRemoveDevice={removeDevice}
+          onRenameDevice={renameDevice}
+          connecting={connecting}
+        />
       </aside>
 
       {view === 'code' && <CodeEditor runController={runController} />}

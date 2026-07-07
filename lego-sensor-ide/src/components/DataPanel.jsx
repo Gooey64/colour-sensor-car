@@ -36,7 +36,7 @@ export default function DataPanel({ sensors, selectedSensorId, onSelectSensor, c
       <div className="panel-section">
         <h2>Capture readings</h2>
         {sensors.length === 0 ? (
-          <p className="empty-hint">Connect a hub with a color sensor to start capturing readings.</p>
+          <p className="empty-hint">Connect a device with a color sensor to start capturing readings.</p>
         ) : (
           <>
             <select

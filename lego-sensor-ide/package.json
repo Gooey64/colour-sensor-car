@@ -10,10 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@babel/standalone": "^8.0.3",
     "@monaco-editor/react": "^4.7.0",
     "idb": "^8.0.3",
-    "loop-protect": "^2.1.6",
     "monaco-editor": "^0.55.1",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"

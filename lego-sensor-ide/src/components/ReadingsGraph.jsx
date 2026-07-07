@@ -10,8 +10,8 @@ const HUE_TICKS = [0, 60, 120, 180, 240, 300, 360];
 const LIGHTNESS_TICKS = [0, 25, 50, 75, 100];
 
 // Readings only carry RGB, so hue/lightness (the plot axes) are derived from
-// that on the fly — this keeps the chart meaningful regardless of which hub
-// produced the reading, instead of depending on hardware-reported HSV fields
+// that on the fly — this keeps the chart meaningful regardless of which
+// device produced the reading, instead of depending on hardware-reported HSV fields
 // that not every sensor sends.
 function rgbToHueLightness([r, g, b]) {
   const rn = r / 255;
