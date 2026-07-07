@@ -14,6 +14,12 @@ const STARTER_CODE = `# Available in every script:
 #   wait(seconds)                    pause without blocking the page
 #   print(...)                       write to the console below
 #
+# The kit's own dm / sm / cs functions (see the Library tab) also work here,
+# bound to the first connected device of each type:
+#   dm.set_speed(speed); dm.run(); dm.stop(); dm.turn_left(deg); dm.turn_right(deg); dm.run_time(ms)
+#   sm.set_speed(speed); sm.run(); sm.stop()
+#   cs.detect_rgb(); cs.detect_color(); cs.detect_reflection()
+#
 # Tip: an "await wait(...)" inside a loop keeps things responsive.
 # "Stop" always ends the script immediately; there's also a 30-second
 # automatic safety limit in case a script never finishes.
@@ -40,14 +46,41 @@ else:
     print("Connect a device with a color sensor and a motor, then run again.")
 `;
 
+const DEMO_CODE = `# Demo: drive a Double Motor device forward while reading and printing
+# from a Color Sensor device, using the kit's own dm/cs functions (see the
+# Library tab). dm is bound to the first connected Double Motor device, cs
+# to the first connected Color Sensor device.
+
+try:
+    await dm.set_speed(40)
+    await dm.run()
+
+    for _ in range(20):
+        rgb = await cs.detect_rgb()
+        color = await cs.detect_color()
+        print("color:", color, "rgb:", rgb)
+        await wait(0.2)
+
+    await dm.stop()
+except Exception as e:
+    print("Connect a Double Motor device and a Color Sensor device, then run again:", e)
+`;
+
 function loadTabs() {
+  let tabs = null;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) tabs = JSON.parse(raw);
   } catch (e) {
     /* ignore */
   }
-  return [{ id: 't1', name: 'main.py', code: STARTER_CODE }];
+  if (!tabs || !tabs.length) {
+    tabs = [{ id: 't1', name: 'main.py', code: STARTER_CODE }];
+  }
+  if (!tabs.some((t) => t.name === 'demo.py')) {
+    tabs = [...tabs, { id: 'demo', name: 'demo.py', code: DEMO_CODE }];
+  }
+  return tabs;
 }
 
 export default function CodeEditor({ runController }) {

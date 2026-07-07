@@ -42,6 +42,8 @@ export class DeviceConnection extends EventTarget {
     this.connected = false;
     this.info = null;
     this._pendingInfo = null;
+    this._writeQueue = null;
+    this.lastMotorSpeed = 50; // used by run()/turn() when no speed is given
   }
 
   async connect() {
@@ -75,9 +77,17 @@ export class DeviceConnection extends EventTarget {
     }
   }
 
+  // Web Bluetooth serializes GATT operations per device — two writeValue()
+  // calls in flight at once throw "GATT operation already in progress"
+  // (e.g. issuing a double motor's two ports' commands concurrently). Queue
+  // every write on this device through one chain so callers can safely
+  // await multiple writes without hand-rolling their own sequencing.
   async _write(bytes) {
     if (!this.writeCharacteristic) return;
-    await this.writeCharacteristic.writeValue(bytes);
+    const previous = this._writeQueue || Promise.resolve();
+    const current = previous.catch(() => {}).then(() => this.writeCharacteristic.writeValue(bytes));
+    this._writeQueue = current;
+    return current;
   }
 
   _waitForInfo(timeoutMs = INFO_TIMEOUT_MS) {
@@ -180,9 +190,10 @@ export class DeviceConnection extends EventTarget {
     }
   }
 
-  async runMotor(portId, speed, _maxPower = 100, direction = 2) {
+  async runMotor(portId, speed = this.lastMotorSpeed, _maxPower = 100, direction = 2) {
     const port = this.ports.get(portId);
     if (!port || port.kind !== 'motor') return;
+    this.lastMotorSpeed = speed;
     await this._write(buildCommand(Command.MOTOR_SPEED, [port.hwPort, clampInt8(speed)]));
     await this._write(buildCommand(Command.MOTOR_RUN, [port.hwPort, direction]));
   }
@@ -192,6 +203,37 @@ export class DeviceConnection extends EventTarget {
     if (!port || port.kind !== 'motor') return;
     await this._write(buildCommand(Command.MOTOR_BRAKE, [port.hwPort, MOTOR_BRAKE_STATE]));
     await this._write(buildCommand(Command.MOTOR_STOP, [port.hwPort]));
+  }
+
+  // Configures target speed without starting movement — mirrors the kit's
+  // own set_speed()/run() split (see the Library tab).
+  async setSpeed(portId, speed) {
+    const port = this.ports.get(portId);
+    if (!port || port.kind !== 'motor') return;
+    this.lastMotorSpeed = speed;
+    await this._write(buildCommand(Command.MOTOR_SPEED, [port.hwPort, clampInt8(speed)]));
+  }
+
+  // direction: 0 = clockwise, 1 = counter-clockwise. Fire-and-forget, same
+  // as the rest of this API — there's no completion notification for this
+  // command, so it doesn't block until the physical rotation finishes.
+  async runMotorForDegrees(portId, degrees, direction = 0) {
+    const port = this.ports.get(portId);
+    if (!port || port.kind !== 'motor') return;
+    await this._write(
+      buildCommand(Command.MOTOR_RUN_FOR_DEGREES, [port.hwPort, Math.round(degrees), direction])
+    );
+  }
+
+  // In-place turn for a double-motor device: rotates port 0 and port 1 by
+  // the same angle in opposite CW/CCW directions, on the assumption the two
+  // motors are mirror-mounted (the common case for a two-wheel chassis). If
+  // "left" turns out to spin the wrong way on a given build, swap
+  // directionA between 0 and 1.
+  async turn(degrees, directionA = 0) {
+    const directionB = directionA === 0 ? 1 : 0;
+    await this.runMotorForDegrees(0, degrees, directionA);
+    await this.runMotorForDegrees(1, degrees, directionB);
   }
 
   getPortsSnapshot() {

@@ -51,10 +51,20 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// Sensor(id)/Motor(id)/wait(seconds), backed by the RPC bridge above and
-// exposed as Python globals. Host calls return plain JS values (or null);
-// `_to_py` converts objects to real Python dicts so student code can index
-// them like `result["rgb"]` instead of dealing with a JsProxy.
+// Two Python APIs, both backed by the RPC bridge above and exposed as
+// Python globals:
+//   - Sensor(id)/Motor(id)/sensor_ids/motor_ids — this app's own API,
+//     addressing devices by name so multiple devices of the same type
+//     (e.g. two color sensors, renamed in the Devices panel) can be used
+//     at once.
+//   - dm/sm/cs/wait/print — the LEGO Education CS & AI kit's own function
+//     library, shown in the Library tab. These are singletons bound to the
+//     first connected device of the matching type, matching how the kit's
+//     own examples are written; they don't distinguish between multiple
+//     devices of the same type the way Sensor(id)/Motor(id) do.
+// Host calls return plain JS values (or null); `_to_py` converts objects to
+// real Python dicts so student code can index them like `result["rgb"]`
+// instead of dealing with a JsProxy.
 const PRELUDE = `
 def _to_py(x):
     return x.to_py() if hasattr(x, "to_py") else x
@@ -84,6 +94,54 @@ class Motor:
 
 async def wait(seconds):
     await _sleep_ms(seconds * 1000)
+
+class _DoubleMotor:
+    async def set_speed(self, speed):
+        await _dm_set_speed(speed)
+
+    async def run(self):
+        await _dm_run()
+
+    async def run_time(self, ms):
+        await _dm_run()
+        await wait(ms / 1000)
+        await _dm_stop()
+
+    async def turn_left(self, degrees):
+        await _dm_turn(degrees, 1)
+
+    async def turn_right(self, degrees):
+        await _dm_turn(degrees, 0)
+
+    async def stop(self):
+        await _dm_stop()
+
+class _SingleMotor:
+    async def set_speed(self, speed):
+        await _sm_set_speed(speed)
+
+    async def run(self):
+        await _sm_run()
+
+    async def stop(self):
+        await _sm_stop()
+
+class _ColorSensor:
+    async def detect_rgb(self):
+        result = _to_py(await _cs_detect())
+        return tuple(result["rgb"]) if result else None
+
+    async def detect_color(self):
+        result = _to_py(await _cs_detect())
+        return result["colorName"] if result else None
+
+    async def detect_reflection(self):
+        result = _to_py(await _cs_detect())
+        return result["reflection"] if result else None
+
+dm = _DoubleMotor()
+sm = _SingleMotor()
+cs = _ColorSensor()
 `;
 
 let pyodidePromise = null;
@@ -116,6 +174,15 @@ async function runUserCode(code) {
     pyodide.globals.set('_sleep_ms', (ms) => sleep(ms));
     pyodide.globals.set('sensor_ids', pyodide.toPy(sensorIds));
     pyodide.globals.set('motor_ids', pyodide.toPy(motorIds));
+
+    pyodide.globals.set('_dm_set_speed', (speed) => callHost('dmSetSpeed', [speed]));
+    pyodide.globals.set('_dm_run', () => callHost('dmRun'));
+    pyodide.globals.set('_dm_stop', () => callHost('dmStop'));
+    pyodide.globals.set('_dm_turn', (degrees, direction) => callHost('dmTurn', [degrees, direction]));
+    pyodide.globals.set('_sm_set_speed', (speed) => callHost('smSetSpeed', [speed]));
+    pyodide.globals.set('_sm_run', () => callHost('smRun'));
+    pyodide.globals.set('_sm_stop', () => callHost('smStop'));
+    pyodide.globals.set('_cs_detect', () => callHost('csDetect'));
 
     await pyodide.runPythonAsync(PRELUDE);
     await pyodide.runPythonAsync(code);

@@ -91,6 +91,11 @@ export class RunController extends EventTarget {
     return endpoint;
   }
 
+  _findFirst(devices, label) {
+    if (!devices.length) throw new Error(`No ${label} device connected.`);
+    return devices[0];
+  }
+
   async _dispatchRpc(method, args) {
     switch (method) {
       case 'listSensorIds':
@@ -102,7 +107,7 @@ export class RunController extends EventTarget {
         const endpoint = this._findEndpoint(id, 'color-sensor');
         const latest = endpoint.device.ports.get(endpoint.portId)?.latest;
         if (!latest) return null;
-        return { rgb: latest.rgb255 };
+        return { rgb: latest.rgb255, colorName: latest.colorName, reflection: latest.reflection };
       }
       case 'sensorClassify': {
         const [id] = args;
@@ -122,6 +127,60 @@ export class RunController extends EventTarget {
         const endpoint = this._findEndpoint(id, 'motor');
         await endpoint.device.stopMotor(endpoint.portId);
         return true;
+      }
+
+      // Kit-native dm/sm/cs API (see the Library tab) — singleton bindings
+      // to the first connected device of the matching type.
+      case 'dmSetSpeed': {
+        const [speed] = args;
+        const device = this._findFirst(this.deviceManager.findDoubleMotorDevices(), 'double motor');
+        // Sequential, not Promise.all: both ports share one BLE connection,
+        // and Web Bluetooth throws "GATT operation already in progress" on
+        // concurrent writes to the same device.
+        await device.setSpeed(0, speed);
+        await device.setSpeed(1, speed);
+        return true;
+      }
+      case 'dmRun': {
+        const device = this._findFirst(this.deviceManager.findDoubleMotorDevices(), 'double motor');
+        await device.runMotor(0);
+        await device.runMotor(1);
+        return true;
+      }
+      case 'dmStop': {
+        const device = this._findFirst(this.deviceManager.findDoubleMotorDevices(), 'double motor');
+        await device.stopMotor(0);
+        await device.stopMotor(1);
+        return true;
+      }
+      case 'dmTurn': {
+        const [degrees, directionA] = args;
+        const device = this._findFirst(this.deviceManager.findDoubleMotorDevices(), 'double motor');
+        await device.turn(degrees, directionA);
+        return true;
+      }
+      case 'smSetSpeed': {
+        const [speed] = args;
+        const device = this._findFirst(this.deviceManager.findSingleMotorDevices(), 'single motor');
+        await device.setSpeed(0, speed);
+        return true;
+      }
+      case 'smRun': {
+        const device = this._findFirst(this.deviceManager.findSingleMotorDevices(), 'single motor');
+        await device.runMotor(0);
+        return true;
+      }
+      case 'smStop': {
+        const device = this._findFirst(this.deviceManager.findSingleMotorDevices(), 'single motor');
+        await device.stopMotor(0);
+        return true;
+      }
+      case 'csDetect': {
+        const devices = this.deviceManager.findColorSensorDevices();
+        if (!devices.length) return null;
+        const latest = devices[0].ports.get(0)?.latest;
+        if (!latest) return null;
+        return { rgb: latest.rgb255, colorName: latest.colorName, reflection: latest.reflection };
       }
       default:
         throw new Error(`Unknown method: ${method}`);

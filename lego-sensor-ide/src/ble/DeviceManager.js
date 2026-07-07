@@ -1,4 +1,5 @@
 import { requestAndConnectDevice } from './DeviceConnection';
+import { MOTOR_GROUP_IDS, SENSOR_GROUP_IDS, DOUBLE_MOTOR_GROUP_ID } from './techElement';
 
 const PORT_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
 
@@ -71,5 +72,21 @@ export class DeviceManager extends EventTarget {
 
   findMotors() {
     return this.listEndpoints().filter((e) => e.kind === 'motor');
+  }
+
+  // Device-level (not port-level) lookups, for the kit's own dm/sm/cs
+  // singleton API — see the Library tab and worker.js's Python prelude.
+  findDoubleMotorDevices() {
+    return this.devices.filter((d) => d.info?.GroupID === DOUBLE_MOTOR_GROUP_ID);
+  }
+
+  findSingleMotorDevices() {
+    return this.devices.filter(
+      (d) => MOTOR_GROUP_IDS.has(d.info?.GroupID) && d.info?.GroupID !== DOUBLE_MOTOR_GROUP_ID
+    );
+  }
+
+  findColorSensorDevices() {
+    return this.devices.filter((d) => SENSOR_GROUP_IDS.has(d.info?.GroupID));
   }
 }

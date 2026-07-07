@@ -78,6 +78,7 @@ export const Command = {
   MOTOR_RUN: ['<BBB', MessageId.MOTOR_RUN_COMMAND],
   MOTOR_STOP: ['<BB', MessageId.MOTOR_STOP_COMMAND],
   MOTOR_BRAKE: ['<BBb', MessageId.MOTOR_SET_END_STATE_COMMAND],
+  MOTOR_RUN_FOR_DEGREES: ['<BBiB', MessageId.MOTOR_RUN_FOR_DEGREES_COMMAND],
 };
 
 // Incoming DEVICE_NOTIFICATION sub-messages, keyed by their leading ID byte.

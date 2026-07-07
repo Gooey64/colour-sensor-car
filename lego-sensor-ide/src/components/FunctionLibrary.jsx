@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 
-// Reference-only: the LEGO Education CS & AI kit's Python function library,
-// as documented for students. Nothing here calls real hardware — it's the
-// same list a student sees in the kit's own code.legoeducation.com editor.
+// The LEGO Education CS & AI kit's Python function library, as documented
+// for students. wait/print and the dm/sm/cs sections are wired up to real
+// hardware in the Code tab (see worker.js); channel and c (Controller)
+// aren't implemented here — they need a phone-relay websocket and a
+// controller BLE protocol this app doesn't have — and stay reference-only.
 const CATEGORIES = [
   {
     id: 'gn',
     title: 'General',
+    live: true,
     fns: [
       { name: 'wait(seconds)', desc: 'Pause for this many seconds' },
       { name: 'print(message)', desc: 'Show a message in the Output box' },
@@ -28,6 +31,7 @@ const CATEGORIES = [
   {
     id: 'dm',
     title: 'Double Motor — dm',
+    live: true,
     fns: [
       { name: 'dm.run()', desc: 'Drive straight until stop()' },
       { name: 'dm.run_time(ms)', desc: 'Drive for this many milliseconds' },
@@ -40,6 +44,7 @@ const CATEGORIES = [
   {
     id: 'sm',
     title: 'Single Motor — sm',
+    live: true,
     fns: [
       { name: 'sm.run()', desc: 'Run until stop()' },
       { name: 'sm.stop()', desc: 'Stop the motor' },
@@ -49,6 +54,7 @@ const CATEGORIES = [
   {
     id: 'cs',
     title: 'Color Sensor — cs',
+    live: true,
     fns: [
       { name: 'cs.detect_color()', desc: "Returns color e.g. 'Red'" },
       { name: 'cs.detect_rgb()', desc: 'Returns (R, G, B) values' },
@@ -94,8 +100,10 @@ export default function FunctionLibrary() {
       <div className="panel-section">
         <h2>CS &amp; AI Kit Function Library</h2>
         <p className="empty-hint" style={{ marginBottom: 12 }}>
-          Reference only — the Python functions available on the LEGO Education CS &amp; AI
-          kit, grouped by device.
+          The Python functions available on the LEGO Education CS &amp; AI kit, grouped by
+          device. Sections marked <span className="pill">works here</span> are wired up to
+          real hardware and can be used directly in the Code tab; the rest are reference
+          only for now.
         </p>
 
         {CATEGORIES.map((cat) => {
@@ -103,7 +111,10 @@ export default function FunctionLibrary() {
           return (
             <div className={`cat-card ${cat.id}`} key={cat.id}>
               <button className={`cat-btn ${open ? 'open' : ''}`} onClick={() => toggle(cat.id)}>
-                {cat.title}
+                <span>
+                  {cat.title}
+                  {cat.live && <span className="pill" style={{ marginLeft: 8 }}>works here</span>}
+                </span>
                 <span className="arrow">▶</span>
               </button>
               {open && (

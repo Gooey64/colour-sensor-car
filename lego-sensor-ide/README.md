@@ -104,6 +104,40 @@ while True:
     await wait(0.1)
 ```
 
+### The kit's own dm / sm / cs functions also work
+
+The Library tab documents the LEGO Education CS & AI kit's own Python
+function library. `wait`/`print` and the `dm` (Double Motor), `sm` (Single
+Motor), and `cs` (Color Sensor) sections are wired up to real hardware here
+too, so code copied straight from the Library tab runs as-is:
+
+```python
+dm.set_speed(50)  # each of these needs "await" in front, same as above
+dm.run()
+dm.turn_left(90)
+cs.detect_color()
+```
+
+`dm`/`sm`/`cs` are singletons bound to the **first** connected device of
+each type — unlike `Sensor(id)`/`Motor(id)`, they don't distinguish between
+multiple devices of the same type. Use `Sensor(id)`/`Motor(id)` with a
+renamed device id (see [Using it](#using-it)) if you've connected more than
+one motor or sensor device and need to address them individually.
+
+Two sections in the Library tab — **Channels** (`channel`, for the phone/
+Teachable Machine relay) and **Controller** (`c`) — aren't implemented,
+since they need subsystems this app doesn't have (a websocket relay server
+and a controller BLE protocol, respectively). They're marked reference-only
+in the Library tab.
+
+`dm.turn_left(degrees)`/`turn_right(degrees)` assume the two motors are
+mirror-mounted, which is the common case for a two-wheel chassis; if a turn
+spins the wrong way on a given build, that's a one-line fix in
+`DeviceConnection.js#turn`. None of `run_time`/`turn_left`/`turn_right`
+block until the physical motion finishes — there's no completion
+notification for those commands, so `run_time(ms)` is implemented as
+run-then-wait-then-stop rather than a hardware-timed move.
+
 ## Why loops can't freeze the page
 
 Your script runs inside a **Web Worker** — its own thread, separate from
